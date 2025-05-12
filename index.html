@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ことのは診断</title>
+  <style>
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    #app {
+      max-width: 600px;
+      margin: auto;
+    }
+    button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 12px;
+      font-size: 1rem;
+      background-color: #ffffff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #e0f7fa;
+    }
+    @media screen and (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+      button {
+        font-size: 0.95rem;
+        padding: 10px;
+      }
+      h1, h2 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>ことのは診断</h1>
+    <div id="start-container">
+      <button id="start-button">診断をはじめる</button>
+    </div>
+    <div id="question-container" style="display:none;"></div>
+    <button id="next-button" style="display:none">次へ</button>
+    <button id="history-button">履歴を見る</button>
+    <div id="result-container" style="display:none;"></div>
+    <div id="history-container" style="display:none;"></div>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        text: "今のあなたの『心の色』は？",
+        choices: [
+          { text: "曇りがかった青", tags: ["不安", "静けさ"] },
+          { text: "ひだまりの黄色", tags: ["安心", "やさしさ"] },
+          { text: "静けさの中の白", tags: ["穏やかさ", "内省"] },
+          { text: "にじんだ赤", tags: ["揺らぎ", "迷い"] }
+        ]
+      },
+      // 他の質問も続く（省略せずに本番環境では必要）
+    ];
+
+    const tagMessages = {
+      "不安": "霧の中でも、あなたは歩いてる。",
+      "静けさ": "静けさの中でしか、聞こえない声がある。",
+      "やさしさ": "やさしくいられること、それは何よりの強さ。",
+      "安心": "その心に宿るぬくもりが、今日を優しく包んでくれる。",
+      "迷い": "まっすぐじゃなくていいよ。曲がり道にも、風は吹くから。",
+      "つながり": "心は目に見えないけれど、ちゃんと届いてるよ。",
+      "前進": "歩幅は小さくても、進んでいることに変わりはない。",
+      "希望": "ひかりは、どんなに小さくても道を照らす。",
+      "自己受容": "足りないところがあっても、愛していい存在なんだよ。",
+      "自己探求": "まだ知らない“わたし”に、こんにちは。",
+      "受容": "そのままのあなたも、よくやっているよ。",
+      "内省": "静かな時間の中に、あなたがいる。",
+      "挑戦": "怖くても、手を伸ばしたその瞬間に変化は始まる。"
+    };
+
+    let currentQuestion = 0;
+    let tagScores = {};
+    let selectedChoice = null;
+
+    const container = document.getElementById("question-container");
+    const resultContainer = document.getElementById("result-container");
+    const historyContainer = document.getElementById("history-container");
+    const nextButton = document.getElementById("next-button");
+    const historyButton = document.getElementById("history-button");
+
+    function showQuestion() {
+      container.innerHTML = "";
+      selectedChoice = null;
+      nextButton.style.display = "block";
+
+      const q = questions[currentQuestion];
+
+      const progress = document.createElement("p");
+      progress.textContent = `（${currentQuestion + 1} / ${questions.length} 問目）`;
+      progress.style.fontWeight = "bold";
+      progress.style.marginBottom = "10px";
+      container.appendChild(progress);
+
+      const qText = document.createElement("h2");
+      qText.textContent = q.text;
+      container.appendChild(qText);
+
+      q.choices.forEach(choice => {
+        const btn = document.createElement("button");
+        btn.className = "choice";
+        btn.textContent = choice.text;
+        btn.onclick = () => {
+          selectedChoice = choice;
+          document.querySelectorAll(".choice").forEach(b => b.style.backgroundColor = "#fff");
+          btn.style.backgroundColor = "#cceef2";
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    nextButton.onclick = () => {
+      if (selectedChoice) {
+        selectedChoice.tags.forEach(tag => {
+          tagScores[tag] = (tagScores[tag] || 0) + 1;
+        });
+        currentQuestion++;
+        if (currentQuestion < questions.length) {
+          showQuestion();
+        } else {
+          showResult();
+        }
+      }
+    };
+
+    function showResult() {
+      container.style.display = "none";
+      nextButton.style.display = "none";
+      resultContainer.style.display = "block";
+
+      const topTags = Object.entries(tagScores)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([tag]) => tag);
+
+      resultContainer.innerHTML = `<h2>あなたに咲いた ことのは</h2>`;
+      const messages = topTags.map(tag => tagMessages[tag] || tag);
+
+      messages.forEach(message => {
+        const p = document.createElement("p");
+        p.textContent = `🌱「${message}」`;
+        resultContainer.appendChild(p);
+      });
+
+      const restartButton = document.createElement("button");
+      restartButton.textContent = "もう一度診断する";
+      restartButton.onclick = () => location.reload();
+      resultContainer.appendChild(restartButton);
+
+      const shareButton = document.createElement("button");
+      shareButton.textContent = "結果をX(Twitter)で共有";
+      shareButton.onclick = () => {
+        const text = encodeURIComponent(`ことのは診断の結果：\n${messages.map(m => '🌱「' + m + '」').join('\n')}\n#ことのは診断`);
+        const url = encodeURIComponent(location.href);
+        const twitterUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+        window.open(twitterUrl, '_blank');
+      };
+      resultContainer.appendChild(shareButton);
+
+      const history = JSON.parse(localStorage.getItem("kotonohaHistory") || "[]");
+      history.push({
+        date: new Date().toLocaleString(),
+        tags: topTags,
+        messages: messages
+      });
+      localStorage.setItem("kotonohaHistory", JSON.stringify(history));
+    }
+
+    historyButton.onclick = () => {
+      container.style.display = "none";
+      resultContainer.style.display = "none";
+      historyContainer.style.display = "block";
+      historyContainer.innerHTML = "<h2>診断履歴</h2>";
+      const history = JSON.parse(localStorage.getItem("kotonohaHistory") || "[]");
+      if (history.length === 0) {
+        historyContainer.innerHTML += "<p>履歴はまだありません。</p>";
+      } else {
+        const ul = document.createElement("ul");
+        history.forEach(entry => {
+          const li = document.createElement("li");
+          const messagesText = entry.messages ? entry.messages.join(" / ") : "";
+          li.textContent = `${entry.date}：${messagesText}`;
+          ul.appendChild(li);
+        });
+        historyContainer.appendChild(ul);
+
+        const clearBtn = document.createElement("button");
+        clearBtn.textContent = "履歴をすべて削除";
+        clearBtn.onclick = () => {
+          localStorage.removeItem("kotonohaHistory");
+          alert("履歴を削除しました");
+          location.reload();
+        };
+        historyContainer.appendChild(clearBtn);
+      }
+    };
+
+    document.getElementById("start-button").onclick = () => {
+      document.getElementById("start-container").style.display = "none";
+      document.getElementById("question-container").style.display = "block";
+      showQuestion();
+    };
+  </script>
+</body>
+</html>
